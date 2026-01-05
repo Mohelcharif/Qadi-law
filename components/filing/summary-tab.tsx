@@ -11,9 +11,10 @@ import Link from 'next/link';
 interface SummaryTabProps {
   filing: any;
   onRefresh: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
-export function SummaryTab({ filing, onRefresh }: SummaryTabProps) {
+export function SummaryTab({ filing, onRefresh, onTabChange }: SummaryTabProps) {
   const progressPercentage = Math.round(
     (filing.stats.approved / filing.stats.total) * 100
   );
@@ -99,7 +100,12 @@ export function SummaryTab({ filing, onRefresh }: SummaryTabProps) {
                   <Badge className={getStatusColor(req.status)}>
                     {req.status === 'NEEDS_CHANGES' ? 'INPUT NEEDED' : 'REQUESTED'}
                   </Badge>
-                  <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-700">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    onClick={() => onTabChange?.('documents')}
+                  >
                     Provide Input
                   </Button>
                 </div>

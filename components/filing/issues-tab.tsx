@@ -107,8 +107,8 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Issues</h3>
-          <p className="text-sm text-gray-400">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Issues</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {openIssuesCount} open issues • {highSevCount} high severity
           </p>
         </div>
@@ -117,18 +117,18 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
       {/* Search and Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
           <Input
             placeholder="Search issues..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+            className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
         </div>
         <select
           value={filters.severity}
           onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
-          className="px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white text-sm"
+          className="px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
         >
           <option value="">All Severity</option>
           <option value="LOW">Low</option>
@@ -139,7 +139,7 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white text-sm"
+          className="px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
         >
           <option value="">All Status</option>
           <option value="OPEN">Open</option>
@@ -150,16 +150,16 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
       </div>
 
       {/* Issues Table */}
-      <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="text-gray-400">Loading issues...</div>
+            <div className="text-gray-600 dark:text-gray-400">Loading issues...</div>
           </div>
         ) : filteredIssues.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="h-12 w-12 text-green-600 mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-white">No issues found</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">No issues found</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {searchQuery || filters.severity || filters.status
                 ? 'Try adjusting your search or filters'
                 : 'All documents are looking good!'}
@@ -168,13 +168,13 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-800 hover:bg-transparent">
-                <TableHead className="w-[30px] text-gray-400"></TableHead>
-                <TableHead className="text-gray-400">Severity</TableHead>
-                <TableHead className="text-gray-400">Issue</TableHead>
-                <TableHead className="text-gray-400">Source</TableHead>
-                <TableHead className="text-gray-400">Status</TableHead>
-                <TableHead className="text-gray-400">Created</TableHead>
+              <TableRow className="border-gray-200 dark:border-gray-800 hover:bg-transparent">
+                <TableHead className="w-[30px] text-gray-600 dark:text-gray-400"></TableHead>
+                <TableHead className="text-gray-600 dark:text-gray-400">Severity</TableHead>
+                <TableHead className="text-gray-600 dark:text-gray-400">Issue</TableHead>
+                <TableHead className="text-gray-600 dark:text-gray-400">Source</TableHead>
+                <TableHead className="text-gray-600 dark:text-gray-400">Status</TableHead>
+                <TableHead className="text-gray-600 dark:text-gray-400">Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,11 +183,11 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
                 return (
                   <React.Fragment key={issue.id}>
                     <TableRow
-                      className="cursor-pointer hover:bg-gray-800/50 border-gray-800"
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 border-gray-200 dark:border-gray-800"
                       onClick={() => toggleExpanded(issue.id)}
                     >
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-white">
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
@@ -202,14 +202,14 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <span className="font-medium text-white">{issue.title}</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="font-medium text-gray-900 dark:text-white">{issue.title}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-500">
                             {issue.requirement.name}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs border-gray-700 text-gray-300">
+                        <Badge variant="outline" className="text-xs border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
                           {issue.source === 'AI_ANALYSIS' ? 'AI' : issue.source === 'MANUAL_REVIEW' ? 'Lawyer' : 'Client'}
                         </Badge>
                       </TableCell>
@@ -218,48 +218,48 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
                           {issue.status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-400">
+                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
                         {formatDate(issue.createdAt)}
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
-                      <TableRow className="border-gray-800">
-                        <TableCell colSpan={6} className="bg-gray-800/30 p-6">
+                      <TableRow className="border-gray-200 dark:border-gray-800">
+                        <TableCell colSpan={6} className="bg-gray-50 dark:bg-gray-800/30 p-6">
                           <div className="space-y-4">
                             <div>
-                              <h4 className="text-sm font-semibold mb-2 text-white">Description</h4>
-                              <p className="text-sm text-gray-400">
+                              <h4 className="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Description</h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
                                 {issue.description}
                               </p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="font-medium text-white">Document:</span>
-                                <div className="text-gray-400 mt-1">
+                                <span className="font-medium text-gray-900 dark:text-white">Document:</span>
+                                <div className="text-gray-600 dark:text-gray-400 mt-1">
                                   {issue.requirement.name}
-                                  <Badge variant="outline" className="ml-2 text-xs border-gray-700">
+                                  <Badge variant="outline" className="ml-2 text-xs border-gray-200 dark:border-gray-700">
                                     {getCategoryLabel(issue.requirement.category)}
                                   </Badge>
                                 </div>
                               </div>
                               {issue.submission && (
                                 <div>
-                                  <span className="font-medium text-white">File:</span>
-                                  <div className="text-gray-400 mt-1">
+                                  <span className="font-medium text-gray-900 dark:text-white">File:</span>
+                                  <div className="text-gray-600 dark:text-gray-400 mt-1">
                                     {issue.submission.fileName} (v{issue.submission.version})
                                   </div>
                                 </div>
                               )}
                               {issue.isRFI && (
                                 <div>
-                                  <span className="font-medium text-white">Type:</span>
-                                  <div className="text-gray-400 mt-1">
+                                  <span className="font-medium text-gray-900 dark:text-white">Type:</span>
+                                  <div className="text-gray-600 dark:text-gray-400 mt-1">
                                     Request for Information (RFI)
                                   </div>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 pt-2 border-t border-gray-700">
+                            <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                               {issue.status === 'OPEN' && (
                                 <Button
                                   size="sm"

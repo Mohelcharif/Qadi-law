@@ -93,7 +93,7 @@ export default function FilingDetailPage() {
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">{filing.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{filing.name}</h1>
             <Badge className={getStatusColor(filing.status)}>
               {filing.status.replace('_', ' ')}
             </Badge>
@@ -191,7 +191,7 @@ export default function FilingDetailPage() {
         </TabsList>
 
         <TabsContent value="summary" className="space-y-4">
-          <SummaryTab filing={filing} onRefresh={fetchFiling} />
+          <SummaryTab filing={filing} onRefresh={fetchFiling} onTabChange={setActiveTab} />
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
