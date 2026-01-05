@@ -1,0 +1,352 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User Management & Authentication
+// ============================================
+
+enum UserRole {
+  CLIENT
+  LAWYER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  role          UserRole  @default(CLIENT)
+  password      String    // Hashed
+  organizationId String?
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+
+  // Activity tracking
+  createdFilings Filing[]  @relation("FilingCreator")
+  assignedFilings FilingAssignment[]
+  submissions    DocumentSubmission[]
+  issues         Issue[]
+  comments       Comment[]
+  activityLogs   ActivityLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+
+  users       User[]
+  filings     Filing[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// Filings (Matters)
+// ============================================
+
+enum FilingStatus {
+  DRAFT
+  IN_PROGRESS
+  UNDER_REVIEW
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Filing {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  status          FilingStatus  @default(DRAFT)
+
+  // DFSA specific fields
+  regulator       String        @default("DFSA")
+  jurisdiction    String        @default("DIFC")
+  applicationType String        @default("Authorisation")
+
+  // Relationships
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  createdById     String
+  createdBy       User          @relation("FilingCreator", fields: [createdById], references: [id])
+
+  // Target dates
+  targetSubmissionDate DateTime?
+  submittedAt          DateTime?
+
+  // Checklist items
+  requirements    DocumentRequirement[]
+  assignments     FilingAssignment[]
+  activityLogs    ActivityLog[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model FilingAssignment {
+  id        String   @id @default(cuid())
+  filingId  String
+  filing    Filing   @relation(fields: [filingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      UserRole
+
+  createdAt DateTime @default(now())
+
+  @@unique([filingId, userId])
+  @@index([filingId])
+  @@index([userId])
+}
+
+// ============================================
+// Document Requirements (Checklist Items)
+// ============================================
+
+enum RequirementStatus {
+  REQUESTED
+  UNDER_REVIEW
+  NEEDS_CHANGES
+  APPROVED
+}
+
+enum RequirementCategory {
+  BUSINESS_PLAN
+  GOVERNANCE
+  COMPLIANCE
+  RISK_MANAGEMENT
+  AML_CFT
+  TECHNOLOGY
+  FINANCIAL
+  LEGAL
+  OPERATIONS
+}
+
+enum RequirementOwner {
+  CLIENT
+  LAWYER
+  SHARED
+}
+
+model DocumentRequirement {
+  id              String               @id @default(cuid())
+  filingId        String
+  filing          Filing               @relation(fields: [filingId], references: [id], onDelete: Cascade)
+
+  // Checklist item details
+  name            String
+  description     String?
+  category        RequirementCategory
+  owner           RequirementOwner     @default(CLIENT)
+  required        Boolean              @default(true)
+  sortOrder       Int                  @default(0)
+
+  // DFSA specific
+  dfsaModuleTag   String?              // e.g., "AML", "COB", "GEN", "PRU", "SYS"
+
+  // Status tracking
+  status          RequirementStatus    @default(REQUESTED)
+
+  // Relationships
+  submissions     DocumentSubmission[]
+  issues          Issue[]
+  comments        Comment[]
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([filingId])
+  @@index([status])
+  @@index([category])
+}
+
+// ============================================
+// Document Submissions (Uploads with versions)
+// ============================================
+
+model DocumentSubmission {
+  id              String              @id @default(cuid())
+  requirementId   String
+  requirement     DocumentRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  // File details
+  fileName        String
+  fileUrl         String              // S3/storage URL
+  fileSize        Int                 // bytes
+  mimeType        String
+  version         Int                 @default(1)
+
+  // Upload metadata
+  uploadedById    String
+  uploadedBy      User                @relation(fields: [uploadedById], references: [id])
+
+  // AI Analysis results
+  aiAnalyzed      Boolean             @default(false)
+  aiSummary       String?             @db.Text
+  aiExtractedData Json?               // JSON of extracted fields
+
+  // Relationships
+  issues          Issue[]
+  comments        Comment[]
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([requirementId])
+  @@index([uploadedById])
+  @@index([version])
+}
+
+// ============================================
+// Issues (AI-generated & Manual)
+// ============================================
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  WONT_FIX
+}
+
+enum IssueSource {
+  AI_ANALYSIS
+  MANUAL_REVIEW
+  CLIENT_QUESTION
+}
+
+model Issue {
+  id              String              @id @default(cuid())
+  requirementId   String
+  requirement     DocumentRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  submissionId    String?
+  submission      DocumentSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  // Issue details
+  title           String
+  description     String              @db.Text
+  severity        IssueSeverity
+  status          IssueStatus         @default(OPEN)
+  source          IssueSource
+
+  // For RFI tracking
+  isRFI           Boolean             @default(false)
+  rfiSentAt       DateTime?
+  rfiResolvedAt   DateTime?
+
+  // Created by (can be AI or user)
+  createdById     String?
+  createdBy       User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  // Comments thread
+  comments        Comment[]
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  resolvedAt      DateTime?
+
+  @@index([requirementId])
+  @@index([submissionId])
+  @@index([status])
+  @@index([severity])
+  @@index([isRFI])
+}
+
+// ============================================
+// Comments (Shared & Internal)
+// ============================================
+
+enum CommentVisibility {
+  SHARED      // Visible to both client and lawyer
+  INTERNAL    // Only visible to lawyer/admin
+}
+
+model Comment {
+  id              String              @id @default(cuid())
+  content         String              @db.Text
+  visibility      CommentVisibility   @default(SHARED)
+
+  // Context - what is this comment on?
+  requirementId   String?
+  requirement     DocumentRequirement? @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  submissionId    String?
+  submission      DocumentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  issueId         String?
+  issue           Issue?              @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  // Author
+  authorId        String
+  author          User                @relation(fields: [authorId], references: [id])
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([requirementId])
+  @@index([submissionId])
+  @@index([issueId])
+  @@index([authorId])
+  @@index([visibility])
+}
+
+// ============================================
+// Activity Log (Audit trail)
+// ============================================
+
+enum ActivityType {
+  FILING_CREATED
+  FILING_STATUS_CHANGED
+  DOCUMENT_UPLOADED
+  DOCUMENT_APPROVED
+  ISSUE_CREATED
+  ISSUE_RESOLVED
+  COMMENT_ADDED
+  RFI_SENT
+  REQUIREMENT_STATUS_CHANGED
+  USER_ASSIGNED
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  filingId    String
+  filing      Filing       @relation(fields: [filingId], references: [id], onDelete: Cascade)
+
+  activityType ActivityType
+  description String
+  metadata    Json?        // Additional structured data
+
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime     @default(now())
+
+  @@index([filingId])
+  @@index([activityType])
+  @@index([createdAt])
+}
