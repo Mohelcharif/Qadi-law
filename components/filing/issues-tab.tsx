@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getSeverityColor, getStatusColor, getCategoryLabel, formatDate } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, ChevronRight, ChevronDown, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronRight, ChevronDown, Search, Plus } from 'lucide-react';
 import { canEditIssues } from '@/lib/auth';
 
 interface IssuesTabProps {
@@ -112,6 +112,18 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
             {openIssuesCount} open issues • {highSevCount} high severity
           </p>
         </div>
+        {canEdit && (
+          <Button
+            onClick={() => {
+              // TODO: Implement Add Issue dialog
+              alert('Add Issue functionality coming soon');
+            }}
+            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900"
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Add Issue
+          </Button>
+        )}
       </div>
 
       {/* Search and Filters */}

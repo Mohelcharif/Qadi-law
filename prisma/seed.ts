@@ -242,15 +242,140 @@ async function main() {
   console.log('✓ Assigned users to filing');
 
   // Create all 20 DFSA document requirements
+  const requirements = [];
   for (const req of DFSA_REQUIREMENTS) {
-    await prisma.documentRequirement.create({
+    const requirement = await prisma.documentRequirement.create({
       data: {
         ...req,
         filingId: filing.id,
       },
     });
+    requirements.push(requirement);
   }
   console.log('✓ Created 20 DFSA document requirements');
+
+  // Create some document submissions
+  const submission1 = await prisma.documentSubmission.create({
+    data: {
+      requirementId: requirements[0].id, // Regulatory Business Plan
+      fileName: "CryptoTech_Business_Plan_v1.pdf",
+      fileUrl: "/uploads/business-plan-v1.pdf",
+      fileSize: 2048576,
+      mimeType: "application/pdf",
+      version: 1,
+      uploadedById: client.id,
+      status: "UNDER_REVIEW",
+      aiAnalysisStatus: "COMPLETED",
+    },
+  });
+
+  const submission2 = await prisma.documentSubmission.create({
+    data: {
+      requirementId: requirements[3].id, // Group Structure
+      fileName: "Group_Structure_UBO_Declaration.pdf",
+      fileUrl: "/uploads/group-structure-v1.pdf",
+      fileSize: 1024000,
+      mimeType: "application/pdf",
+      version: 1,
+      uploadedById: client.id,
+      status: "NEEDS_CHANGES",
+      aiAnalysisStatus: "COMPLETED",
+    },
+  });
+
+  await prisma.documentSubmission.create({
+    data: {
+      requirementId: requirements[11].id, // Transaction Monitoring
+      fileName: "TM_Blockchain_Analytics_Framework.pdf",
+      fileUrl: "/uploads/transaction-monitoring-v1.pdf",
+      fileSize: 1536000,
+      mimeType: "application/pdf",
+      version: 1,
+      uploadedById: client.id,
+      status: "UNDER_REVIEW",
+      aiAnalysisStatus: "COMPLETED",
+    },
+  });
+  console.log('✓ Created 3 document submissions');
+
+  // Update some requirements status
+  await prisma.documentRequirement.update({
+    where: { id: requirements[0].id },
+    data: { status: "UNDER_REVIEW" },
+  });
+  await prisma.documentRequirement.update({
+    where: { id: requirements[3].id },
+    data: { status: "NEEDS_CHANGES" },
+  });
+  await prisma.documentRequirement.update({
+    where: { id: requirements[11].id },
+    data: { status: "UNDER_REVIEW" },
+  });
+  console.log('✓ Updated requirement statuses');
+
+  // Create sample issues for some requirements
+  const issuesData = [
+    {
+      requirementId: requirements[0].id, // Regulatory Business Plan
+      submissionId: submission1.id,
+      title: "Missing detail on outsourcing arrangements",
+      description: "The business plan lacks specific details about outsourcing arrangements for custody services. Please provide a comprehensive breakdown of which services will be outsourced, to whom, and under what contractual terms.",
+      severity: "HIGH",
+      status: "OPEN",
+      source: "AI_ANALYSIS",
+      isRFI: false,
+      createdById: lawyer.id,
+    },
+    {
+      requirementId: requirements[0].id, // Regulatory Business Plan
+      submissionId: submission1.id,
+      title: "Timeline appears aggressive",
+      description: "The proposed timeline for launching operations (3 months post-approval) seems ambitious given the complexity of systems integration required. Consider extending to 6 months.",
+      severity: "MEDIUM",
+      status: "OPEN",
+      source: "MANUAL_REVIEW",
+      isRFI: false,
+      createdById: lawyer.id,
+    },
+    {
+      requirementId: requirements[3].id, // Group Structure
+      submissionId: submission2.id,
+      title: "UBO declaration incomplete",
+      description: "The UBO declaration is missing for two beneficial owners. All individuals owning 10% or more must be disclosed with complete identification details.",
+      severity: "HIGH",
+      status: "IN_PROGRESS",
+      source: "AI_ANALYSIS",
+      isRFI: true,
+      createdById: lawyer.id,
+    },
+    {
+      requirementId: requirements[11].id, // Transaction Monitoring
+      title: "MLRO appointment confirmation needed",
+      description: "Please provide written confirmation of the MLRO appointment and their acceptance of the role, including start date and reporting lines.",
+      severity: "MEDIUM",
+      status: "OPEN",
+      source: "MANUAL_REVIEW",
+      isRFI: true,
+      createdById: lawyer.id,
+    },
+    {
+      requirementId: requirements[14].id, // Technology Architecture
+      title: "Internal review: Consider SOC 2 timeline",
+      description: "The current plan shows SOC 2 certification targeted for Q4. Given DFSA expectations, we should consider accelerating this to Q2 to strengthen the application.",
+      severity: "LOW",
+      status: "OPEN",
+      source: "MANUAL_REVIEW",
+      isRFI: false,
+      createdById: lawyer.id,
+    },
+  ];
+
+  for (const issueData of issuesData) {
+    await prisma.issue.create({
+      data: issueData,
+    });
+  }
+  console.log('✓ Created 5 sample issues');
 
   // Log activity
   await prisma.activityLog.create({
