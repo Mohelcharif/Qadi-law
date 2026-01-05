@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import { NavHeader } from '@/components/layout/nav-header';
+import { Sidebar } from '@/components/layout/sidebar';
 
 export default async function DashboardLayout({
   children,
@@ -15,9 +15,11 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavHeader />
-      <main className="flex-1 container py-6">{children}</main>
+    <div className="flex h-screen overflow-hidden bg-gray-950">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-8">{children}</div>
+      </main>
     </div>
   );
 }

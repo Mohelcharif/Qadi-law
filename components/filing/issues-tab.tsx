@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -14,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getSeverityColor, getStatusColor, getCategoryLabel, formatDate } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, ChevronRight, ChevronDown } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { canEditIssues } from '@/lib/auth';
 
 interface IssuesTabProps {
@@ -27,6 +28,7 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
   const [issues, setIssues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     severity: '',
     status: '',
@@ -85,99 +87,107 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
     setExpandedIssues(newExpanded);
   };
 
-  const openIssuesCount = issues.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length;
-  const highSevCount = issues.filter(i => i.severity === 'HIGH' || i.severity === 'CRITICAL').length;
+  // Filter issues based on search and filters
+  const filteredIssues = useMemo(() => {
+    return issues.filter((issue) => {
+      const matchesSearch =
+        issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.requirement.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [issues, searchQuery]);
+
+  const openIssuesCount = filteredIssues.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS').length;
+  const highSevCount = filteredIssues.filter(i => i.severity === 'HIGH' || i.severity === 'CRITICAL').length;
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Issues</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold text-white">Issues</h3>
+          <p className="text-sm text-gray-400">
             {openIssuesCount} open issues • {highSevCount} high severity
           </p>
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Filter:</span>
-            <select
-              value={filters.severity}
-              onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
-              className="text-sm border rounded-md px-3 py-1.5"
-            >
-              <option value="">All Severity</option>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="CRITICAL">Critical</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="text-sm border rounded-md px-3 py-1.5"
-            >
-              <option value="">All Status</option>
-              <option value="OPEN">Open</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="RESOLVED">Resolved</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-          </div>
-          {(filters.severity || filters.status) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFilters({ severity: '', status: '' })}
-            >
-              Clear Filters
-            </Button>
-          )}
+      {/* Search and Filters */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search issues..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+          />
         </div>
-      </Card>
+        <select
+          value={filters.severity}
+          onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
+          className="px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white text-sm"
+        >
+          <option value="">All Severity</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+          <option value="CRITICAL">Critical</option>
+        </select>
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          className="px-4 py-2 rounded-md border border-gray-700 bg-gray-800 text-white text-sm"
+        >
+          <option value="">All Status</option>
+          <option value="OPEN">Open</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
 
       {/* Issues Table */}
-      <Card>
+      <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground">Loading issues...</div>
+            <div className="text-gray-400">Loading issues...</div>
           </div>
-        ) : issues.length === 0 ? (
+        ) : filteredIssues.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="h-12 w-12 text-green-600 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No issues found</h3>
-            <p className="text-sm text-muted-foreground">
-              {filters.severity || filters.status
-                ? 'Try adjusting your filters'
+            <h3 className="text-lg font-semibold mb-2 text-white">No issues found</h3>
+            <p className="text-sm text-gray-400">
+              {searchQuery || filters.severity || filters.status
+                ? 'Try adjusting your search or filters'
                 : 'All documents are looking good!'}
             </p>
           </div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[30px]"></TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Issue</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+              <TableRow className="border-gray-800 hover:bg-transparent">
+                <TableHead className="w-[30px] text-gray-400"></TableHead>
+                <TableHead className="text-gray-400">Severity</TableHead>
+                <TableHead className="text-gray-400">Issue</TableHead>
+                <TableHead className="text-gray-400">Source</TableHead>
+                <TableHead className="text-gray-400">Status</TableHead>
+                <TableHead className="text-gray-400">Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {issues.map((issue: any) => {
+              {filteredIssues.map((issue: any) => {
                 const isExpanded = expandedIssues.has(issue.id);
                 return (
                   <React.Fragment key={issue.id}>
-                    <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => toggleExpanded(issue.id)}>
+                    <TableRow
+                      className="cursor-pointer hover:bg-gray-800/50 border-gray-800"
+                      onClick={() => toggleExpanded(issue.id)}
+                    >
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-white">
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
@@ -192,14 +202,14 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <span className="font-medium">{issue.title}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="font-medium text-white">{issue.title}</span>
+                          <span className="text-xs text-gray-500">
                             {issue.requirement.name}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs border-gray-700 text-gray-300">
                           {issue.source === 'AI_ANALYSIS' ? 'AI' : issue.source === 'MANUAL_REVIEW' ? 'Lawyer' : 'Client'}
                         </Badge>
                       </TableCell>
@@ -208,48 +218,48 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
                           {issue.status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-gray-400">
                         {formatDate(issue.createdAt)}
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/30 p-6">
+                      <TableRow className="border-gray-800">
+                        <TableCell colSpan={6} className="bg-gray-800/30 p-6">
                           <div className="space-y-4">
                             <div>
-                              <h4 className="text-sm font-semibold mb-2">Description</h4>
-                              <p className="text-sm text-muted-foreground">
+                              <h4 className="text-sm font-semibold mb-2 text-white">Description</h4>
+                              <p className="text-sm text-gray-400">
                                 {issue.description}
                               </p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <span className="font-medium">Document:</span>
-                                <div className="text-muted-foreground mt-1">
+                                <span className="font-medium text-white">Document:</span>
+                                <div className="text-gray-400 mt-1">
                                   {issue.requirement.name}
-                                  <Badge variant="outline" className="ml-2 text-xs">
+                                  <Badge variant="outline" className="ml-2 text-xs border-gray-700">
                                     {getCategoryLabel(issue.requirement.category)}
                                   </Badge>
                                 </div>
                               </div>
                               {issue.submission && (
                                 <div>
-                                  <span className="font-medium">File:</span>
-                                  <div className="text-muted-foreground mt-1">
+                                  <span className="font-medium text-white">File:</span>
+                                  <div className="text-gray-400 mt-1">
                                     {issue.submission.fileName} (v{issue.submission.version})
                                   </div>
                                 </div>
                               )}
                               {issue.isRFI && (
                                 <div>
-                                  <span className="font-medium">Type:</span>
-                                  <div className="text-muted-foreground mt-1">
+                                  <span className="font-medium text-white">Type:</span>
+                                  <div className="text-gray-400 mt-1">
                                     Request for Information (RFI)
                                   </div>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 pt-2 border-t">
+                            <div className="flex items-center gap-2 pt-2 border-t border-gray-700">
                               {issue.status === 'OPEN' && (
                                 <Button
                                   size="sm"
@@ -286,7 +296,7 @@ export function IssuesTab({ filing, onRefresh }: IssuesTabProps) {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
